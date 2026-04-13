@@ -821,19 +821,7 @@ server <- function(input, output, session) {
     # /!\ ATTENTION : le bloc ci-dessous fait un masquage ALÉATOIRE sans solveur.
     # C'est l'ancienne méthode. Elle écrase les chiffres_visibles calculés par retirer_indices().
     # Pour utiliser le retrait vérifié mathématiquement, il faudrait plutôt faire :
-    #   etat_partie$chiffres_visibles <- grille$chiffres_visibles
-    # et supprimer tout ce bloc sample().
-    chiffres_masques   <- grille$chiffres             # On repart des chiffres complets
-    proportion_visible <- input$entree_indices / 100  # Conversion du slider (ex: 60 → 0.6)
-    nb_cases_total     <- taille * taille
-    nb_cases_a_cacher  <- floor(nb_cases_total * (1 - proportion_visible))  # Nombre à retirer
-    if(nb_cases_a_cacher > 0) {
-      # sample() choisit nb_cases_a_cacher positions au hasard parmi toutes les cases
-      indices_a_cacher <- sample(nb_cases_total, nb_cases_a_cacher)
-      chiffres_masques[indices_a_cacher] <- NA  # On les efface (NA = pas d'indice visible)
-      # Problème : rien ne garantit que le puzzle reste à solution unique après ça.
-    }
-    etat_partie$chiffres_visibles <- chiffres_masques
+    etat_partie$chiffres_visibles <- grille$chiffres_visibles
     
   }, ignoreNULL = FALSE)  # FALSE = exécuter aussi au tout premier chargement de la page
   
