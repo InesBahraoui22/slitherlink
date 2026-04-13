@@ -818,9 +818,7 @@ server <- function(input, output, session) {
     etat_partie$message_texte   <- "Nouvelle partie lancée — à vous de jouer."
     etat_partie$classe_statut   <- "texte-statut actif"
     
-    # /!\ ATTENTION : le bloc ci-dessous fait un masquage ALÉATOIRE sans solveur.
-    # C'est l'ancienne méthode. Elle écrase les chiffres_visibles calculés par retirer_indices().
-    # Pour utiliser le retrait vérifié mathématiquement, il faudrait plutôt faire :
+    # Pour utiliser le retrait vérifié mathématiquement :
     etat_partie$chiffres_visibles <- grille$chiffres_visibles
     
   }, ignoreNULL = FALSE)  # FALSE = exécuter aussi au tout premier chargement de la page
