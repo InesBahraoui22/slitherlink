@@ -78,6 +78,7 @@ propager_contraintes <- function(etat, chiffres, nb_lignes, nb_colonnes) {
         cible <- chiffres[l, cc]  # Le chiffre attendu (ex: "2" signifie 2 arêtes ON)
         aretes <- obtenir_aretes_cellule(l, cc)  # Les 4 arêtes autour de cette case
         valeurs <- sapply(aretes, function(a) lire_arete(etat, a))  # Leurs états actuels
+        #browser()
         
         nb_on  <- sum(valeurs == 1)   # Combien sont déjà confirmées allumées
         nb_unk <- sum(valeurs == -1)   # Combien sont encore indéterminées
@@ -351,7 +352,7 @@ generer_grille_slitherlink <- function(nb_lignes = 5, nb_colonnes = 5, complexit
   
   print(paste("--> [GÉNÉRATION] Agrandissement de la zone jusqu'à", taille_cible_zone, "cases..."))
   
-  #browser()  # Point d'arrêt de debug (décommenter pour inspecter en pas-à-pas dans RStudio)
+  #browser()  # Point d'arrêt de debug
   
   # Boucle de croissance : on agrandit la zone intérieure case par case
   while(taille_actuelle_zone < taille_cible_zone && length(cases_candidates) > 0) {
@@ -432,6 +433,7 @@ generer_grille_slitherlink <- function(nb_lignes = 5, nb_colonnes = 5, complexit
   chiffres_indices <- matrix(NA, nb_lignes, nb_colonnes)  # On initialise à NA par convention
   for(ligne in 1:nb_lignes) {
     for(colonne in 1:nb_colonnes) {
+      #browser()
       # Somme des 4 arêtes adjacentes dans la solution
       total_traits_autour <- solution_horizontale[ligne, colonne] +    # trait du haut
         solution_horizontale[ligne+1, colonne] +                        # trait du bas
@@ -725,7 +727,7 @@ ui <- fluidPage(
       # Bloc titre en haut à gauche de la barre
       div(
         p(class = "titre-jeu",      "SLITHERLINK"),
-        p(class = "sous-titre-jeu", "Édition Française")
+        p(class = "sous-titre-jeu", "Ines et Chams")
       ),
       
       div(class = "separateur-barre"),  # Trait vertical de séparation
