@@ -526,7 +526,7 @@ ui <- fluidPage(
       }
       .sous-titre-jeu {
         font-size: 0.7rem;
-        letter-spacing: 0.3em;                /* Espacement large = style "HUD" */
+        letter-spacing: 0.3em;                /* Espacement large = style HUD */
         color: var(--text-dim);
         text-transform: uppercase;
         margin-top: 3px;
@@ -596,7 +596,7 @@ ui <- fluidPage(
       }
 
       /* ── Boutons d'action ── */
-      /* Style "outlined" : fond transparent, bordure colorée, remplissage au hover */
+      /* Style outlined : fond transparent, bordure colorée, remplissage au hover */
       .btn-nouveau {
         background: transparent;
         border: 1.5px solid var(--neon-cyan);
@@ -645,7 +645,7 @@ ui <- fluidPage(
         padding: 36px 20px 60px;       /* 60px en bas pour le bandeau fixe */
         min-height: calc(100vh - 90px); /* Remplit la hauteur restante sous la barre */
         background: var(--bg-deep);
-        /* Motif de points en fond pour l'ambiance "plan technique" */
+        /* Motif de points en fond pour l'ambiance plan technique */
         background-image: radial-gradient(circle, #1a2a4a 1px, transparent 1px);
         background-size: 28px 28px;
       }
@@ -662,7 +662,7 @@ ui <- fluidPage(
         position: relative; /* Pour positionner les coins décoratifs */
       }
       /* Coins décoratifs : petits angles cyan en haut-gauche et bas-droite */
-      /* C'est purement esthétique — ça donne un look "cadre de visée HUD" */
+      /* C'est purement esthétique — ça donne un look cadre de visée HUD */
       .carte-grille::before {
         content: '';
         position: absolute;
