@@ -384,54 +384,315 @@ generer_grille_slitherlink <- function(nb_lignes = 5, nb_colonnes = 5, complexit
 # ==============================================================================
 # 2. INTERFACE UTILISATEUR (Ce qui s'affiche à l'écran)
 # ==============================================================================
+
+# Thème de base bslib : on utilise "darkly" comme socle
+# et on superpose un CSS complet pour le style néon rétro-futuriste
 theme_visuel <- bs_theme(
   version = 5,
-  bootswatch = "darkly", 
-  primary = "#e74c3c", # Rouge
-  base_font = font_google("Roboto")
+  bootswatch = "darkly",
+  primary = "#00f5d4",
+  base_font = font_google("Rajdhani"),     # Police corps : géométrique et lisible
+  heading_font = font_google("Orbitron")  # Police titres : rétro-futuriste
 )
 
 ui <- fluidPage(
   theme = theme_visuel,
   
-  # Un peu de CSS pour embellir les boîtes et la souris
+  # --------------------------------------------------------------------------
+  # CSS PERSONNALISÉ : thème néon rétro-futuriste
+  # --------------------------------------------------------------------------
   tags$head(
+    tags$link(rel = "stylesheet",
+              href = "https://fonts.googleapis.com/css2?family=Orbitron:wght@600;900&family=Rajdhani:wght@400;600&display=swap"),
+    
     tags$style(HTML("
-      .curseur-cible { cursor: crosshair; } /* La souris devient une croix de visée */
-      .boite-graphique { background-color: #2b2b2b; border: 1px solid #444; border-radius: 10px; padding: 15px; }
+
+      /* ── Variables globales de couleur ── */
+      :root {
+        --neon-cyan:  #00f5d4;
+        --neon-amber: #f5a623;
+        --neon-red:   #ff3b5c;
+        --bg-deep:    #090e1a;
+        --bg-panel:   #0d1526;
+        --bg-card:    #111d35;
+        --border-dim: #1e3060;
+        --text-main:  #cdd9f5;
+        --text-dim:   #5a7aaa;
+      }
+
+      /* ── Fond général ── */
+      body {
+        background-color: var(--bg-deep) !important;
+        color: var(--text-main) !important;
+        font-family: 'Rajdhani', sans-serif;
+        font-size: 16px;
+        margin: 0;
+        padding: 0;
+      }
+      .container-fluid { padding: 0 !important; }
+
+      /* ── Titre principal avec effet néon ── */
+      .titre-jeu {
+        font-family: 'Orbitron', sans-serif;
+        font-weight: 900;
+        font-size: 1.5rem;
+        letter-spacing: 0.15em;
+        color: var(--neon-cyan);
+        text-shadow: 0 0 8px var(--neon-cyan), 0 0 25px rgba(0,245,212,0.4);
+        margin: 0;
+        line-height: 1;
+      }
+      .sous-titre-jeu {
+        font-size: 0.7rem;
+        letter-spacing: 0.3em;
+        color: var(--text-dim);
+        text-transform: uppercase;
+        margin-top: 3px;
+        font-family: 'Rajdhani', sans-serif;
+      }
+
+      /* ── Barre de contrôle horizontale en haut (remplace le sidebarPanel) ── */
+      .barre-controle {
+        background: var(--bg-panel);
+        border-bottom: 1px solid var(--border-dim);
+        padding: 12px 24px;
+        display: flex;
+        align-items: center;
+        gap: 24px;
+        flex-wrap: wrap;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+        position: sticky;
+        top: 0;
+        z-index: 50;
+      }
+
+      /* ── Séparateur vertical dans la barre ── */
+      .separateur-barre {
+        width: 1px;
+        height: 38px;
+        background: var(--border-dim);
+        flex-shrink: 0;
+      }
+
+      /* ── Groupe label + contrôle dans la barre ── */
+      .groupe-controle {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+        min-width: 150px;
+      }
+      .groupe-controle > label {
+        font-family: 'Orbitron', sans-serif;
+        font-size: 0.55rem;
+        letter-spacing: 0.2em;
+        color: var(--text-dim);
+        text-transform: uppercase;
+        margin-bottom: 0;
+      }
+      /* Suppression des marges internes des widgets Shiny dans la barre */
+      .groupe-controle .form-group,
+      .groupe-controle .shiny-input-container { margin-bottom: 0 !important; }
+
+      /* Sliders : couleur cyan néon */
+      .groupe-controle .irs--shiny .irs-bar       { background: var(--neon-cyan); border-color: var(--neon-cyan); }
+      .groupe-controle .irs--shiny .irs-handle     { background: var(--neon-cyan) !important; border-color: var(--neon-cyan) !important; }
+      .groupe-controle .irs--shiny .irs-from,
+      .groupe-controle .irs--shiny .irs-to,
+      .groupe-controle .irs--shiny .irs-single     { background: var(--neon-cyan); color: #000; font-family: 'Orbitron', sans-serif; font-size: 0.6rem; }
+      .groupe-controle .irs--shiny .irs-line       { background: var(--border-dim); border-color: var(--border-dim); }
+      .groupe-controle .irs--shiny .irs-grid-text  { color: var(--text-dim); }
+
+      /* ── Cases à cocher ── */
+      .groupe-checks { display: flex; flex-direction: column; gap: 4px; }
+      .groupe-checks .checkbox { margin: 0 !important; }
+      .groupe-checks .checkbox label {
+        font-size: 0.8rem;
+        color: var(--text-main);
+        letter-spacing: 0.04em;
+        font-family: 'Rajdhani', sans-serif;
+      }
+
+      /* ── Boutons d'action ── */
+      .btn-nouveau {
+        background: transparent;
+        border: 1.5px solid var(--neon-cyan);
+        color: var(--neon-cyan);
+        font-family: 'Orbitron', sans-serif;
+        font-size: 0.6rem;
+        letter-spacing: 0.12em;
+        padding: 8px 16px;
+        border-radius: 3px;
+        transition: all 0.2s ease;
+        white-space: nowrap;
+        cursor: pointer;
+      }
+      .btn-nouveau:hover, .btn-nouveau:focus {
+        background: var(--neon-cyan);
+        color: #000 !important;
+        box-shadow: 0 0 16px rgba(0,245,212,0.5);
+        outline: none;
+      }
+      .btn-verifier {
+        background: transparent;
+        border: 1.5px solid var(--neon-amber);
+        color: var(--neon-amber);
+        font-family: 'Orbitron', sans-serif;
+        font-size: 0.6rem;
+        letter-spacing: 0.12em;
+        padding: 8px 16px;
+        border-radius: 3px;
+        transition: all 0.2s ease;
+        white-space: nowrap;
+        cursor: pointer;
+      }
+      .btn-verifier:hover, .btn-verifier:focus {
+        background: var(--neon-amber);
+        color: #000 !important;
+        box-shadow: 0 0 16px rgba(245,166,35,0.5);
+        outline: none;
+      }
+
+      /* ── Zone de jeu principale (grille centrée, pleine largeur) ── */
+      .zone-jeu {
+        display: flex;
+        justify-content: center;
+        align-items: flex-start;
+        padding: 36px 20px 60px;       /* 60px en bas pour laisser place au bandeau fixe */
+        min-height: calc(100vh - 90px);
+        background: var(--bg-deep);
+        /* Grille de points en arrière-plan pour l'ambiance */
+        background-image: radial-gradient(circle, #1a2a4a 1px, transparent 1px);
+        background-size: 28px 28px;
+      }
+
+      /* ── Carte conteneur de la grille ── */
+      .carte-grille {
+        background: var(--bg-card);
+        border: 1px solid var(--border-dim);
+        border-radius: 6px;
+        padding: 18px;
+        box-shadow: 0 0 40px rgba(0,245,212,0.06), 0 20px 60px rgba(0,0,0,0.6);
+        cursor: crosshair;
+        position: relative;
+      }
+      /* Coins décoratifs néon */
+      .carte-grille::before {
+        content: '';
+        position: absolute;
+        top: -1px; left: -1px;
+        width: 20px; height: 20px;
+        border-top: 2px solid var(--neon-cyan);
+        border-left: 2px solid var(--neon-cyan);
+        border-radius: 6px 0 0 0;
+      }
+      .carte-grille::after {
+        content: '';
+        position: absolute;
+        bottom: -1px; right: -1px;
+        width: 20px; height: 20px;
+        border-bottom: 2px solid var(--neon-cyan);
+        border-right: 2px solid var(--neon-cyan);
+        border-radius: 0 0 6px 0;
+      }
+
+      /* ── Bandeau de statut fixe en bas de page ── */
+      .bandeau-statut {
+        position: fixed;
+        bottom: 0; left: 0; right: 0;
+        background: var(--bg-panel);
+        border-top: 1px solid var(--border-dim);
+        padding: 7px 28px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 100;
+      }
+
+      /* ── Texte de statut (barre haute et bandeau bas) ── */
+      .texte-statut {
+        font-family: 'Orbitron', sans-serif;
+        font-size: 0.65rem;
+        letter-spacing: 0.15em;
+        color: var(--text-dim);
+        text-transform: uppercase;
+      }
+      .texte-statut.actif  { color: var(--text-main); }
+      .texte-statut.gagne  {
+        color: var(--neon-cyan);
+        text-shadow: 0 0 10px var(--neon-cyan);
+        animation: pulse-glow 1.2s ease-in-out infinite alternate;
+      }
+      .texte-statut.erreur { color: var(--neon-amber); }
+
+      @keyframes pulse-glow {
+        from { text-shadow: 0 0 5px var(--neon-cyan); }
+        to   { text-shadow: 0 0 22px var(--neon-cyan), 0 0 45px rgba(0,245,212,0.35); }
+      }
     "))
   ),
   
-  titlePanel("Slitherlink : Édition Française"),
-  
-  sidebarLayout(
-    sidebarPanel(
-      width = 3,
-      h4("Commandes"),
-      sliderInput("entree_taille", "Taille de la grille", min = 4, max = 10, value = 5),
-      # Curseur pour choisir la proportion d'indices affichés (100% = tous les chiffres, mode facile)
-      # Le solveur essaiera d'atteindre ce pourcentage, mais gardera plus d'indices si nécessaire
-      # pour garantir une solution unique
-      sliderInput("entree_indices", "Indices affichés (% cible)", min = 10, max = 100, value = 60, step = 5),
-      actionButton("bouton_nouveau", "Nouveau Jeu", icon = icon("sync"), class = "btn-primary w-100"),
-      helpText("La génération peut prendre quelques secondes (le solveur vérifie l'unicité de la solution)."),
-      hr(),
-      h4("Aides Visuelles"),
-      checkboxInput("case_afficher_cibles", "Afficher les cibles (croix grises)", value = TRUE),
-      checkboxInput("case_afficher_erreurs", "Surligner les erreurs en rouge", value = FALSE),
-      hr(),
-      actionButton("bouton_verifier", "Vérifier ma solution", class = "btn-success w-100"),
-      br(), br(),
+  # --------------------------------------------------------------------------
+  # BARRE DE CONTRÔLE HORIZONTALE (remplace le sidebarPanel d'origine)
+  # --------------------------------------------------------------------------
+  div(class = "barre-controle",
+      
+      # Bloc titre
+      div(
+        p(class = "titre-jeu",      "SLITHERLINK"),
+        p(class = "sous-titre-jeu", "Édition Française")
+      ),
+      
+      div(class = "separateur-barre"),
+      
+      # Slider : taille de la grille
+      div(class = "groupe-controle",
+          tags$label("Taille de grille"),
+          sliderInput("entree_taille", label = NULL, min = 4, max = 20, value = 5, width = "155px")
+      ),
+      
+      # Slider : densité des indices (% de chiffres visibles)
+      div(class = "groupe-controle",
+          tags$label("Indices affichés (%)"),
+          sliderInput("entree_indices", label = NULL, min = 10, max = 100, value = 60, step = 5, width = "155px")
+      ),
+      
+      div(class = "separateur-barre"),
+      
+      # Cases à cocher : aides visuelles
+      div(class = "groupe-checks",
+          checkboxInput("case_afficher_cibles",  "Cibles grises",    value = TRUE),
+          checkboxInput("case_afficher_erreurs", "Erreurs en rouge", value = FALSE)
+      ),
+      
+      div(class = "separateur-barre"),
+      
+      # Boutons d'action
+      div(style = "display:flex; gap:10px; align-items:center;",
+          actionButton("bouton_nouveau",  "▶ NOUVEAU JEU", class = "btn-nouveau"),
+          actionButton("bouton_verifier", "✔ VÉRIFIER",    class = "btn-verifier")
+      ),
+      
+      div(class = "separateur-barre"),
+      
+      # Statut court visible dans la barre elle-même
       uiOutput("affichage_message_statut")
-    ),
-    
-    mainPanel(
-      width = 9,
-      div(class = "boite-graphique curseur-cible",
+  ),
+  
+  # --------------------------------------------------------------------------
+  # ZONE DE JEU PRINCIPALE (grille centrée, pleine largeur)
+  # --------------------------------------------------------------------------
+  div(class = "zone-jeu",
+      div(class = "carte-grille",
           # C'est ici qu'on capte les clics ("clic_souris")
-          plotOutput("dessin_jeu", click = "clic_souris", height = "600px")
+          plotOutput("dessin_jeu", click = "clic_souris", height = "570px", width = "570px")
       )
-    )
+  ),
+  
+  # --------------------------------------------------------------------------
+  # BANDEAU DE STATUT FIXE EN BAS DE PAGE
+  # --------------------------------------------------------------------------
+  div(class = "bandeau-statut",
+      uiOutput("affichage_statut_bas")
   )
 )
 
@@ -442,11 +703,12 @@ server <- function(input, output, session) {
   
   # Mémoire de l'application : ce qui doit être mis à jour à l'écran
   etat_partie <- reactiveValues(
-    donnees_grille = NULL,
-    traits_joueur_h = NULL, 
-    traits_joueur_v = NULL,
-    partie_gagnee = FALSE,
-    message_texte = "Cliquez sur les traits gris pour les allumer.",
+    donnees_grille    = NULL,
+    traits_joueur_h   = NULL,
+    traits_joueur_v   = NULL,
+    partie_gagnee     = FALSE,
+    message_texte     = "Cliquez sur les traits gris pour les allumer.",
+    classe_statut     = "texte-statut actif",
     # Matrice des chiffres visibles par le joueur (NA = case masquée, le chiffre reste connu en interne)
     chiffres_visibles = NULL
   )
@@ -456,31 +718,26 @@ server <- function(input, output, session) {
     taille <- input$entree_taille
     print(paste("=== NOUVELLE PARTIE DEMANDÉE (Taille", taille, ") ==="))
     
-    # Notification de chargement (le solveur peut prendre quelques secondes)
-    notif_id <- showNotification("Génération du puzzle en cours (vérification d'unicité)...", 
-                                 duration = NULL, type = "message")
-    
     # On génère la grille et on remet le plateau à zéro
-    # Le pourcentage d'indices du slider est passé comme objectif cible au solveur
-    proportion_visible <- input$entree_indices / 100
-    grille <- generer_grille_slitherlink(taille, taille, proportion_indices = proportion_visible)
-    
-    etat_partie$donnees_grille <- grille
+    grille <- generer_grille_slitherlink(taille, taille)
+    etat_partie$donnees_grille  <- grille
     etat_partie$traits_joueur_h <- matrix(0, taille + 1, taille)
     etat_partie$traits_joueur_v <- matrix(0, taille, taille + 1)
-    etat_partie$partie_gagnee <- FALSE
-    etat_partie$message_texte <- "Nouvelle partie lancée ! À vous de jouer."
+    etat_partie$partie_gagnee   <- FALSE
+    etat_partie$message_texte   <- "Nouvelle partie lancée — à vous de jouer."
+    etat_partie$classe_statut   <- "texte-statut actif"
     
-    # Les chiffres visibles sont maintenant calculés par le solveur (plus de tirage aléatoire aveugle)
-    etat_partie$chiffres_visibles <- grille$chiffres_visibles
-    
-    removeNotification(notif_id)
-    
-    # Afficher combien d'indices ont été gardés
-    nb_total <- taille * taille
-    nb_visibles <- sum(!is.na(grille$chiffres_visibles))
-    showNotification(paste("Puzzle prêt !", nb_visibles, "indices sur", nb_total,
-                           "(solution unique garantie)"), type = "message", duration = 5)
+    # Masquage aléatoire des chiffres selon le pourcentage d'indices choisi par le joueur
+    # On part de la grille complète et on efface (NA) les cases non sélectionnées
+    chiffres_masques   <- grille$chiffres
+    proportion_visible <- input$entree_indices / 100
+    nb_cases_total     <- taille * taille
+    nb_cases_a_cacher  <- floor(nb_cases_total * (1 - proportion_visible))
+    if(nb_cases_a_cacher > 0) {
+      indices_a_cacher <- sample(nb_cases_total, nb_cases_a_cacher)
+      chiffres_masques[indices_a_cacher] <- NA # NA signifie "case sans indice affiché"
+    }
+    etat_partie$chiffres_visibles <- chiffres_masques
     
   }, ignoreNULL = FALSE) # ignoreNULL = FALSE permet de lancer ça dès l'ouverture de la page
   
@@ -497,12 +754,12 @@ server <- function(input, output, session) {
     clic_y <- input$clic_souris$y
     print(paste("--- Clic détecté aux coordonnées X:", round(clic_x, 2), " Y:", round(clic_y, 2), "---"))
     
-    nb_lignes <- etat_partie$donnees_grille$nb_lignes
+    nb_lignes   <- etat_partie$donnees_grille$nb_lignes
     nb_colonnes <- etat_partie$donnees_grille$nb_colonnes
     
     # Variables pour trouver la croix (cible) la plus proche du clic
-    distance_minimale <- Inf
-    cible_la_plus_proche <- NULL 
+    distance_minimale    <- Inf
+    cible_la_plus_proche <- NULL
     
     # 1. Vérifier la distance avec tous les traits HORIZONTAUX
     for(ligne in 1:(nb_lignes + 1)) {
@@ -514,7 +771,7 @@ server <- function(input, output, session) {
         distance <- sqrt((clic_x - centre_x)^2 + (clic_y - centre_y)^2)
         
         if(distance < distance_minimale) {
-          distance_minimale <- distance
+          distance_minimale    <- distance
           cible_la_plus_proche <- list(type="horizontal", ligne=ligne, colonne=colonne)
         }
       }
@@ -524,12 +781,12 @@ server <- function(input, output, session) {
     for(ligne in 1:nb_lignes) {
       for(colonne in 1:(nb_colonnes + 1)) {
         centre_x <- colonne
-        centre_y <- (nb_lignes + 2) - ligne - 0.5 
+        centre_y <- (nb_lignes + 2) - ligne - 0.5
         
         distance <- sqrt((clic_x - centre_x)^2 + (clic_y - centre_y)^2)
         
         if(distance < distance_minimale) {
-          distance_minimale <- distance
+          distance_minimale    <- distance
           cible_la_plus_proche <- list(type="vertical", ligne=ligne, colonne=colonne)
         }
       }
@@ -538,8 +795,8 @@ server <- function(input, output, session) {
     # 3. Action finale : Si on a cliqué assez près d'une cible (distance < 0.45)
     if(distance_minimale < 0.45) {
       type <- cible_la_plus_proche$type
-      l <- cible_la_plus_proche$ligne
-      c <- cible_la_plus_proche$colonne
+      l    <- cible_la_plus_proche$ligne
+      c    <- cible_la_plus_proche$colonne
       
       print(paste("Trait sélectionné:", type, "- Ligne:", l, "- Colonne:", c))
       
@@ -561,104 +818,115 @@ server <- function(input, output, session) {
     
     # On compare les traits du joueur avec les traits de la solution
     erreurs_horizontales <- sum(abs(etat_partie$traits_joueur_h - etat_partie$donnees_grille$solution_h))
-    erreurs_verticales <- sum(abs(etat_partie$traits_joueur_v - etat_partie$donnees_grille$solution_v))
-    total_erreurs <- erreurs_horizontales + erreurs_verticales
+    erreurs_verticales   <- sum(abs(etat_partie$traits_joueur_v - etat_partie$donnees_grille$solution_v))
+    total_erreurs        <- erreurs_horizontales + erreurs_verticales
     
     print(paste("Nombre d'erreurs détectées :", total_erreurs))
     
     if(total_erreurs == 0) {
       etat_partie$partie_gagnee <- TRUE
-      etat_partie$message_texte <- "🏆 MAGNIFIQUE ! Puzzle Résolu ! 🏆"
-      showNotification("Victoire !", type="message")
+      etat_partie$message_texte <- "★ MAGNIFIQUE — PUZZLE RÉSOLU ★"
+      etat_partie$classe_statut <- "texte-statut gagne"
+      showNotification("Victoire !", type = "message")
     } else {
-      etat_partie$message_texte <- paste(total_erreurs, "erreurs restantes.")
-      showNotification(paste("Il reste", total_erreurs, "erreurs."), type="warning")
+      etat_partie$message_texte <- paste(total_erreurs, "erreur(s) restante(s).")
+      etat_partie$classe_statut <- "texte-statut erreur"
+      showNotification(paste("Il reste", total_erreurs, "erreurs."), type = "warning")
     }
   })
   
-  # AFFICHAGE : Le texte de statut en bas à gauche
+  # AFFICHAGE : Texte de statut dans la barre de contrôle (haut)
   output$affichage_message_statut <- renderUI({
-    h3(etat_partie$message_texte, style="color: #00bc8c; text-align: center;")
+    div(class = etat_partie$classe_statut, etat_partie$message_texte)
+  })
+  
+  # AFFICHAGE : Texte de statut dans le bandeau fixe du bas (même info, autre emplacement)
+  output$affichage_statut_bas <- renderUI({
+    div(class = etat_partie$classe_statut, etat_partie$message_texte)
   })
   
   # DESSIN : La fonction qui dessine tout le plateau (appelée à chaque clic)
   output$dessin_jeu <- renderPlot({
     req(etat_partie$donnees_grille) # Vérifie qu'il y a des données à dessiner
     
-    nb_lignes <- etat_partie$donnees_grille$nb_lignes
+    nb_lignes   <- etat_partie$donnees_grille$nb_lignes
     nb_colonnes <- etat_partie$donnees_grille$nb_colonnes
     
-    # Création du fond vide
-    par(mar=c(0,0,0,0), bg="#2b2b2b")
-    plot(0,0, type="n", xlim=c(0.5, nb_colonnes+1.5), ylim=c(0.5, nb_lignes+1.5), asp=1, axes=FALSE, xlab="", ylab="")
+    # Création du fond vide — aligné avec la couleur "--bg-card" du thème CSS
+    par(mar = c(0, 0, 0, 0), bg = "#111d35")
+    plot(0, 0, type = "n",
+         xlim = c(0.5, nb_colonnes + 1.5),
+         ylim = c(0.5, nb_lignes + 1.5),
+         asp = 1, axes = FALSE, xlab = "", ylab = "")
     
     # COUCHE 1 : Les cibles (Aide visuelle - les petites croix grises)
     if(input$case_afficher_cibles) {
       # Horizontales
       for(l in 1:(nb_lignes+1)) {
         for(c in 1:nb_colonnes) {
-          points(c + 0.5, (nb_lignes + 2) - l, pch=3, col="#444444", cex=0.5)
+          points(c + 0.5, (nb_lignes + 2) - l, pch = 3, col = "#1e3060", cex = 0.5)
         }
       }
       # Verticales
       for(l in 1:nb_lignes) {
         for(c in 1:(nb_colonnes+1)) {
-          points(c, (nb_lignes + 2) - l - 0.5, pch=3, col="#444444", cex=0.5)
+          points(c, (nb_lignes + 2) - l - 0.5, pch = 3, col = "#1e3060", cex = 0.5)
         }
       }
     }
     
-    # COUCHE 2 : Les "poteaux" blancs de la grille
-    grille_x <- rep(1:(nb_colonnes+1), each=nb_lignes+1)
-    grille_y <- rep((nb_lignes+1):1, times=nb_colonnes+1)
-    points(grille_x, grille_y, pch=19, col="#bdc3c7", cex=1.2)
+    # COUCHE 2 : Les "poteaux" (points de coin) de la grille — cyan néon discret
+    grille_x <- rep(1:(nb_colonnes+1), each = nb_lignes+1)
+    grille_y <- rep((nb_lignes+1):1, times = nb_colonnes+1)
+    points(grille_x, grille_y, pch = 19, col = "#00f5d4", cex = 0.9)
     
     # COUCHE 3 : Les Chiffres au centre des cases
     # On utilise chiffres_visibles (qui peut contenir des NA) pour l'affichage,
     # mais chiffres (solution complète) pour vérifier si le compte est bon.
     for(l in 1:nb_lignes) {
       for(c in 1:nb_colonnes) {
-        chiffre_attendu <- etat_partie$donnees_grille$chiffres[l,c]   # Valeur réelle (toujours connue)
-        chiffre_visible <- etat_partie$chiffres_visibles[l,c]         # Valeur affichée (peut être NA)
+        chiffre_attendu <- etat_partie$donnees_grille$chiffres[l, c]  # Valeur réelle (toujours connue)
+        chiffre_visible <- etat_partie$chiffres_visibles[l, c]        # Valeur affichée (peut être NA)
         
         # Combien de traits le joueur a-t-il dessiné autour de cette case précise ?
-        traits_autour_joueur <- etat_partie$traits_joueur_h[l,c] + 
-          etat_partie$traits_joueur_h[l+1,c] + 
-          etat_partie$traits_joueur_v[l,c] + 
-          etat_partie$traits_joueur_v[l,c+1]
+        traits_autour_joueur <- etat_partie$traits_joueur_h[l, c] +
+          etat_partie$traits_joueur_h[l+1, c] +
+          etat_partie$traits_joueur_v[l, c] +
+          etat_partie$traits_joueur_v[l, c+1]
         
         # On n'affiche le chiffre que si la case n'a pas été masquée (non-NA)
         if(!is.na(chiffre_visible)) {
           # Le chiffre change de couleur selon qu'on a le bon compte ou non
-          couleur_texte <- "#ecf0f1" # Blanc par défaut
-          if(traits_autour_joueur == chiffre_attendu) couleur_texte <- "#2ecc71" # Vert (OK)
-          if(traits_autour_joueur > chiffre_attendu) couleur_texte <- "#e74c3c"  # Rouge (Trop de traits !)
+          couleur_texte <- "#cdd9f5"                                       # Blanc bleuté par défaut
+          if(traits_autour_joueur == chiffre_attendu) couleur_texte <- "#00f5d4" # Cyan néon (OK !)
+          if(traits_autour_joueur >  chiffre_attendu) couleur_texte <- "#ff3b5c" # Rouge néon (trop !)
           
-          text(c+0.5, (nb_lignes+1)-l+0.5, chiffre_visible, col=couleur_texte, cex=2, font=2)
+          text(c + 0.5, (nb_lignes+1) - l + 0.5, chiffre_visible,
+               col = couleur_texte, cex = 1.8, font = 2, family = "sans")
         }
       }
     }
     
     # COUCHE 4 : Les traits dessinés par le joueur
-    epaisseur_trait_actif <- 5
+    epaisseur_trait_actif   <- 5
     epaisseur_trait_inactif <- 1
     
     # Dessin des traits horizontaux
     for(l in 1:(nb_lignes+1)) {
       for(c in 1:nb_colonnes) {
-        hauteur_y <- (nb_lignes+2)-l
+        hauteur_y <- (nb_lignes + 2) - l
         
         # Si le joueur a cliqué ici (valeur = 1)
-        if(etat_partie$traits_joueur_h[l,c] == 1) {
-          couleur_trait <- "#3498db" # Bleu
-          # Si le mode triche "afficher les erreurs" est actif et que ce trait est faux
-          if(input$case_afficher_erreurs && etat_partie$donnees_grille$solution_h[l,c] == 0) {
-            couleur_trait <- "#e74c3c" # Rouge
+        if(etat_partie$traits_joueur_h[l, c] == 1) {
+          couleur_trait <- "#00f5d4" # Cyan néon
+          # Si le mode "afficher les erreurs" est actif et que ce trait est faux
+          if(input$case_afficher_erreurs && etat_partie$donnees_grille$solution_h[l, c] == 0) {
+            couleur_trait <- "#ff3b5c" # Rouge néon
           }
-          segments(c, hauteur_y, c+1, hauteur_y, lwd=epaisseur_trait_actif, col=couleur_trait)
+          segments(c, hauteur_y, c+1, hauteur_y, lwd = epaisseur_trait_actif, col = couleur_trait)
         } else {
-          # Trait inactif (fantôme gris)
-          segments(c, hauteur_y, c+1, hauteur_y, lwd=epaisseur_trait_inactif, col="#444444", lty=1) 
+          # Trait inactif (fantôme sombre)
+          segments(c, hauteur_y, c+1, hauteur_y, lwd = epaisseur_trait_inactif, col = "#1e3060", lty = 1)
         }
       }
     }
@@ -666,16 +934,16 @@ server <- function(input, output, session) {
     # Dessin des traits verticaux
     for(l in 1:nb_lignes) {
       for(c in 1:(nb_colonnes+1)) {
-        hauteur_y <- (nb_lignes+2)-l
+        hauteur_y <- (nb_lignes + 2) - l
         
-        if(etat_partie$traits_joueur_v[l,c] == 1) {
-          couleur_trait <- "#3498db" # Bleu
-          if(input$case_afficher_erreurs && etat_partie$donnees_grille$solution_v[l,c] == 0) {
-            couleur_trait <- "#e74c3c" # Rouge
+        if(etat_partie$traits_joueur_v[l, c] == 1) {
+          couleur_trait <- "#00f5d4" # Cyan néon
+          if(input$case_afficher_erreurs && etat_partie$donnees_grille$solution_v[l, c] == 0) {
+            couleur_trait <- "#ff3b5c" # Rouge néon
           }
-          segments(c, hauteur_y, c, hauteur_y-1, lwd=epaisseur_trait_actif, col=couleur_trait)
+          segments(c, hauteur_y, c, hauteur_y-1, lwd = epaisseur_trait_actif, col = couleur_trait)
         } else {
-          segments(c, hauteur_y, c, hauteur_y-1, lwd=epaisseur_trait_inactif, col="#444444", lty=1)
+          segments(c, hauteur_y, c, hauteur_y-1, lwd = epaisseur_trait_inactif, col = "#1e3060", lty = 1)
         }
       }
     }
