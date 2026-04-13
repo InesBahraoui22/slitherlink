@@ -2,9 +2,273 @@ library(shiny)
 library(bslib)
 
 # ==============================================================================
+# 0. SOLVEUR MATHÉMATIQUE (Garantit l'unicité de la solution)
+# ==============================================================================
+
+# --- Fonctions utilitaires pour manipuler les arêtes ---
+
+# Récupère les arêtes adjacentes à un sommet (intersection de la grille)
+# Un sommet (l,c) peut avoir jusqu'à 4 arêtes : haut, bas, gauche, droite
+obtenir_aretes_sommet <- function(l, c, nb_lignes, nb_colonnes) {
+  aretes <- list()
+  if (l > 1)            aretes <- append(aretes, list(list(type = "v", l = l - 1, c = c)))  # Haut
+  if (l <= nb_lignes)   aretes <- append(aretes, list(list(type = "v", l = l, c = c)))      # Bas
+  if (c > 1)            aretes <- append(aretes, list(list(type = "h", l = l, c = c - 1)))  # Gauche
+  if (c <= nb_colonnes) aretes <- append(aretes, list(list(type = "h", l = l, c = c)))      # Droite
+  return(aretes)
+}
+
+# Récupère les 4 arêtes autour d'une cellule (l, c)
+obtenir_aretes_cellule <- function(l, c) {
+  list(
+    list(type = "h", l = l,     c = c),   # trait du haut
+    list(type = "h", l = l + 1, c = c),   # trait du bas
+    list(type = "v", l = l, c = c),       # trait de gauche
+    list(type = "v", l = l, c = c + 1)    # trait de droite
+  )
+}
+
+# Lit la valeur d'une arête dans l'état du solveur (-1 = inconnu, 0 = éteint, 1 = allumé)
+lire_arete <- function(etat, arete) {
+  if (arete$type == "h") return(etat$h[arete$l, arete$c])
+  else return(etat$v[arete$l, arete$c])
+}
+
+# Écrit la valeur d'une arête dans l'état du solveur
+ecrire_arete <- function(etat, arete, valeur) {
+  if (arete$type == "h") etat$h[arete$l, arete$c] <- valeur
+  else etat$v[arete$l, arete$c] <- valeur
+  return(etat)
+}
+
+# --- Propagation de contraintes ---
+# Applique les règles logiques locales en boucle jusqu'à ce que plus rien ne change
+# Retourne NULL si on détecte une contradiction, sinon l'état mis à jour
+propager_contraintes <- function(etat, chiffres, nb_lignes, nb_colonnes) {
+  modifie <- TRUE
+  while (modifie) {
+    modifie <- FALSE
+    
+    # Règle 1 : Contraintes de cellule (les chiffres/indices)
+    # Pour chaque case avec un indice, la somme des 4 arêtes autour doit valoir l'indice
+    for (l in 1:nb_lignes) {
+      for (cc in 1:nb_colonnes) {
+        if (is.na(chiffres[l, cc])) next  # Pas d'indice ici, on passe
+        cible <- chiffres[l, cc]
+        aretes <- obtenir_aretes_cellule(l, cc)
+        valeurs <- sapply(aretes, function(a) lire_arete(etat, a))
+        
+        nb_on  <- sum(valeurs == 1)   # Combien sont déjà allumées
+        nb_unk <- sum(valeurs == -1)   # Combien sont encore inconnues
+        
+        # Contradiction : trop d'arêtes allumées, ou pas assez d'inconnues pour atteindre la cible
+        if (nb_on > cible || nb_on + nb_unk < cible) return(NULL)
+        
+        # Si on a déjà le bon nombre d'allumées → éteindre toutes les inconnues
+        if (nb_on == cible && nb_unk > 0) {
+          for (a in aretes) {
+            if (lire_arete(etat, a) == -1) { etat <- ecrire_arete(etat, a, 0); modifie <- TRUE }
+          }
+        }
+        # Si le nombre d'allumées + inconnues = cible → allumer toutes les inconnues
+        if (nb_on + nb_unk == cible && nb_unk > 0) {
+          for (a in aretes) {
+            if (lire_arete(etat, a) == -1) { etat <- ecrire_arete(etat, a, 1); modifie <- TRUE }
+          }
+        }
+      }
+    }
+    
+    # Règle 2 : Contraintes de sommet (à chaque intersection : degré 0 ou 2)
+    # C'est la règle de la boucle : chaque sommet est traversé par 0 ou 2 arêtes
+    for (l in 1:(nb_lignes + 1)) {
+      for (cc in 1:(nb_colonnes + 1)) {
+        aretes <- obtenir_aretes_sommet(l, cc, nb_lignes, nb_colonnes)
+        valeurs <- sapply(aretes, function(a) lire_arete(etat, a))
+        
+        nb_on  <- sum(valeurs == 1)
+        nb_unk <- sum(valeurs == -1)
+        
+        if (nb_on > 2) return(NULL)                        # Contradiction : degré > 2
+        if (nb_on == 1 && nb_unk == 0) return(NULL)        # Cul-de-sac (degré 1 sans issue)
+        
+        # Degré 2 atteint → toutes les inconnues restantes doivent être éteintes
+        if (nb_on == 2 && nb_unk > 0) {
+          for (a in aretes) {
+            if (lire_arete(etat, a) == -1) { etat <- ecrire_arete(etat, a, 0); modifie <- TRUE }
+          }
+        }
+        # 1 arête allumée et 1 seule inconnue → l'inconnue doit être allumée (pour avoir degré 2)
+        if (nb_on == 1 && nb_unk == 1) {
+          for (a in aretes) {
+            if (lire_arete(etat, a) == -1) { etat <- ecrire_arete(etat, a, 1); modifie <- TRUE }
+          }
+        }
+        # 0 arête allumée et 1 seule inconnue → l'inconnue doit être éteinte (degré 1 interdit)
+        if (nb_on == 0 && nb_unk == 1) {
+          for (a in aretes) {
+            if (lire_arete(etat, a) == -1) { etat <- ecrire_arete(etat, a, 0); modifie <- TRUE }
+          }
+        }
+      }
+    }
+  }
+  return(etat)
+}
+
+# --- Vérification de connexité ---
+# Vérifie que les arêtes allumées forment UNE SEULE boucle (pas plusieurs boucles séparées)
+verifier_boucle_unique <- function(etat, nb_lignes, nb_colonnes) {
+  # On convertit chaque arête allumée en paire de sommets pour construire un graphe
+  adj <- list()
+  
+  # Arêtes horizontales : relient le sommet (l, c) au sommet (l, c+1)
+  for (l in 1:(nb_lignes + 1)) {
+    for (cc in 1:nb_colonnes) {
+      if (etat$h[l, cc] == 1) {
+        s1 <- paste0(l, "-", cc)
+        s2 <- paste0(l, "-", cc + 1)
+        adj[[s1]] <- c(adj[[s1]], s2)
+        adj[[s2]] <- c(adj[[s2]], s1)
+      }
+    }
+  }
+  # Arêtes verticales : relient le sommet (l, c) au sommet (l+1, c)
+  for (l in 1:nb_lignes) {
+    for (cc in 1:(nb_colonnes + 1)) {
+      if (etat$v[l, cc] == 1) {
+        s1 <- paste0(l, "-", cc)
+        s2 <- paste0(l + 1, "-", cc)
+        adj[[s1]] <- c(adj[[s1]], s2)
+        adj[[s2]] <- c(adj[[s2]], s1)
+      }
+    }
+  }
+  
+  if (length(adj) == 0) return(FALSE)  # Aucune arête allumée = pas de boucle
+  
+  # BFS : on part d'un sommet et on visite tout ce qui est connecté
+  sommets <- names(adj)
+  visite <- c(sommets[1])
+  file <- c(sommets[1])
+  while (length(file) > 0) {
+    courant <- file[1]
+    file <- file[-1]
+    for (voisin in adj[[courant]]) {
+      if (!(voisin %in% visite)) {
+        visite <- c(visite, voisin)
+        file <- c(file, voisin)
+      }
+    }
+  }
+  # Si tous les sommets actifs sont visités → une seule composante → une seule boucle
+  return(length(visite) == length(sommets))
+}
+
+# --- Solveur principal ---
+# Compte le nombre de solutions (s'arrête dès qu'on en trouve max_solutions)
+# Utilise : propagation de contraintes + backtracking (essai des 2 valeurs pour chaque arête inconnue)
+compter_solutions <- function(chiffres, nb_lignes, nb_colonnes, max_solutions = 2) {
+  # État initial : toutes les arêtes sont inconnues (-1)
+  etat_initial <- list(
+    h = matrix(-1, nb_lignes + 1, nb_colonnes),
+    v = matrix(-1, nb_lignes, nb_colonnes + 1)
+  )
+  
+  compteur <- 0
+  env <- environment()  # Pour partager le compteur entre les appels récursifs
+  
+  backtrack <- function(etat) {
+    # 1. Propager les contraintes
+    etat <- propager_contraintes(etat, chiffres, nb_lignes, nb_colonnes)
+    if (is.null(etat)) return()  # Contradiction détectée → on fait marche arrière
+    
+    # 2. Chercher la première arête encore inconnue (d'abord horizontales, puis verticales)
+    for (l in 1:(nb_lignes + 1)) {
+      for (cc in 1:nb_colonnes) {
+        if (etat$h[l, cc] == -1) {
+          etat_on <- etat; etat_on$h[l, cc] <- 1     # Essayer de l'allumer
+          backtrack(etat_on)
+          if (env$compteur >= max_solutions) return()
+          etat_off <- etat; etat_off$h[l, cc] <- 0   # Essayer de l'éteindre
+          backtrack(etat_off)
+          return()
+        }
+      }
+    }
+    for (l in 1:nb_lignes) {
+      for (cc in 1:(nb_colonnes + 1)) {
+        if (etat$v[l, cc] == -1) {
+          etat_on <- etat; etat_on$v[l, cc] <- 1
+          backtrack(etat_on)
+          if (env$compteur >= max_solutions) return()
+          etat_off <- etat; etat_off$v[l, cc] <- 0
+          backtrack(etat_off)
+          return()
+        }
+      }
+    }
+    
+    # 3. Plus d'inconnues → on a une assignation complète
+    # On vérifie que ça forme bien UNE SEULE boucle fermée
+    if (verifier_boucle_unique(etat, nb_lignes, nb_colonnes)) {
+      env$compteur <- env$compteur + 1
+    }
+  }
+  
+  backtrack(etat_initial)
+  return(compteur)
+}
+
+# --- Algorithme glouton de retrait d'indices ---
+# On retire les indices un par un (dans un ordre aléatoire),
+# et on ne confirme le retrait QUE si le solveur certifie que la solution reste unique.
+# proportion_cible = pourcentage d'indices qu'on VEUT garder (objectif, pas garanti)
+retirer_indices <- function(chiffres_complets, nb_lignes, nb_colonnes, proportion_cible = 0.6) {
+  print("--> [RETRAIT] Début du retrait d'indices avec vérification d'unicité...")
+  
+  chiffres <- chiffres_complets  # Copie de travail (on va mettre des NA dedans)
+  
+  nb_total <- nb_lignes * nb_colonnes
+  nb_cible_visible <- ceiling(nb_total * proportion_cible)  # Nombre d'indices qu'on veut garder
+  nb_actuellement_visible <- nb_total
+  
+  # Liste de toutes les positions, mélangée aléatoirement
+  positions <- expand.grid(l = 1:nb_lignes, c = 1:nb_colonnes)
+  positions <- positions[sample(nrow(positions)), ]
+  
+  for (i in 1:nrow(positions)) {
+    # Si on a déjà atteint l'objectif de retrait, on arrête
+    if (nb_actuellement_visible <= nb_cible_visible) break
+    
+    l <- positions$l[i]
+    cc <- positions$c[i]
+    
+    valeur_sauvee <- chiffres[l, cc]       # On sauvegarde avant de retirer
+    chiffres[l, cc] <- NA                  # On retire provisoirement
+    
+    # Le solveur cherche au plus 2 solutions : si 1 seule → c'est bon, si 2+ → ambiguïté
+    nb_sol <- compter_solutions(chiffres, nb_lignes, nb_colonnes, max_solutions = 2)
+    
+    if (nb_sol == 1) {
+      # Unicité préservée → on confirme le retrait
+      nb_actuellement_visible <- nb_actuellement_visible - 1
+      print(paste("    Indice retiré en (", l, ",", cc, ") - Restants:", nb_actuellement_visible))
+    } else {
+      # Ambiguïté → on remet l'indice en place
+      chiffres[l, cc] <- valeur_sauvee
+    }
+  }
+  
+  print(paste("--> [RETRAIT] Terminé.", nb_actuellement_visible, "indices sur", nb_total,
+              "conservés (", round(100 * nb_actuellement_visible / nb_total), "%)"))
+  return(chiffres)
+}
+
+# ==============================================================================
 # 1. MOTEUR DE GÉNÉRATION (Création du puzzle)
 # ==============================================================================
-generer_grille_slitherlink <- function(nb_lignes = 5, nb_colonnes = 5, complexite = 0.6) {
+generer_grille_slitherlink <- function(nb_lignes = 5, nb_colonnes = 5, complexite = 0.6, proportion_indices = 0.6) {
   print(paste("--> [GÉNÉRATION] Création d'une nouvelle grille de taille", nb_lignes, "x", nb_colonnes))
   
   # ÉTAPE A : Créer une forme aléatoire fermée (la solution du puzzle)
@@ -100,6 +364,11 @@ generer_grille_slitherlink <- function(nb_lignes = 5, nb_colonnes = 5, complexit
     }
   }
   
+  # ÉTAPE D : Retirer des indices avec VÉRIFICATION MATHÉMATIQUE de l'unicité
+  # Au lieu de retirer au hasard, on utilise un solveur qui garantit qu'il n'y a qu'une seule solution
+  print("--> [GÉNÉRATION] Retrait intelligent des indices (vérification d'unicité par solveur)...")
+  chiffres_visibles <- retirer_indices(chiffres_indices, nb_lignes, nb_colonnes, proportion_indices)
+  
   print("--> [GÉNÉRATION] Terminé avec succès !")
   # On renvoie tout ce qu'on a fabriqué
   return(list(
@@ -107,7 +376,8 @@ generer_grille_slitherlink <- function(nb_lignes = 5, nb_colonnes = 5, complexit
     nb_colonnes = nb_colonnes, 
     solution_h = solution_horizontale, 
     solution_v = solution_verticale, 
-    chiffres = chiffres_indices
+    chiffres = chiffres_indices,            # Tous les chiffres (solution complète, pour vérif interne)
+    chiffres_visibles = chiffres_visibles   # Chiffres après retrait (ce que le joueur voit)
   ))
 }
 
@@ -138,10 +408,13 @@ ui <- fluidPage(
     sidebarPanel(
       width = 3,
       h4("Commandes"),
-      sliderInput("entree_taille", "Taille de la grille", min = 4, max = 20, value = 5),
+      sliderInput("entree_taille", "Taille de la grille", min = 4, max = 10, value = 5),
       # Curseur pour choisir la proportion d'indices affichés (100% = tous les chiffres, mode facile)
-      sliderInput("entree_indices", "Indices affichés (%)", min = 10, max = 100, value = 60, step = 5),
+      # Le solveur essaiera d'atteindre ce pourcentage, mais gardera plus d'indices si nécessaire
+      # pour garantir une solution unique
+      sliderInput("entree_indices", "Indices affichés (% cible)", min = 10, max = 100, value = 60, step = 5),
       actionButton("bouton_nouveau", "Nouveau Jeu", icon = icon("sync"), class = "btn-primary w-100"),
+      helpText("La génération peut prendre quelques secondes (le solveur vérifie l'unicité de la solution)."),
       hr(),
       h4("Aides Visuelles"),
       checkboxInput("case_afficher_cibles", "Afficher les cibles (croix grises)", value = TRUE),
@@ -183,25 +456,31 @@ server <- function(input, output, session) {
     taille <- input$entree_taille
     print(paste("=== NOUVELLE PARTIE DEMANDÉE (Taille", taille, ") ==="))
     
+    # Notification de chargement (le solveur peut prendre quelques secondes)
+    notif_id <- showNotification("Génération du puzzle en cours (vérification d'unicité)...", 
+                                 duration = NULL, type = "message")
+    
     # On génère la grille et on remet le plateau à zéro
-    grille <- generer_grille_slitherlink(taille, taille)
+    # Le pourcentage d'indices du slider est passé comme objectif cible au solveur
+    proportion_visible <- input$entree_indices / 100
+    grille <- generer_grille_slitherlink(taille, taille, proportion_indices = proportion_visible)
+    
     etat_partie$donnees_grille <- grille
     etat_partie$traits_joueur_h <- matrix(0, taille + 1, taille)
     etat_partie$traits_joueur_v <- matrix(0, taille, taille + 1)
     etat_partie$partie_gagnee <- FALSE
     etat_partie$message_texte <- "Nouvelle partie lancée ! À vous de jouer."
     
-    # Masquage aléatoire des chiffres selon le pourcentage d'indices choisi par le joueur
-    # On part de la grille complète et on efface (NA) les cases non sélectionnées
-    chiffres_masques <- grille$chiffres
-    proportion_visible <- input$entree_indices / 100
-    nb_cases_total <- taille * taille
-    nb_cases_a_cacher <- floor(nb_cases_total * (1 - proportion_visible))
-    if(nb_cases_a_cacher > 0) {
-      indices_a_cacher <- sample(nb_cases_total, nb_cases_a_cacher)
-      chiffres_masques[indices_a_cacher] <- NA # NA signifie "case sans indice affiché"
-    }
-    etat_partie$chiffres_visibles <- chiffres_masques
+    # Les chiffres visibles sont maintenant calculés par le solveur (plus de tirage aléatoire aveugle)
+    etat_partie$chiffres_visibles <- grille$chiffres_visibles
+    
+    removeNotification(notif_id)
+    
+    # Afficher combien d'indices ont été gardés
+    nb_total <- taille * taille
+    nb_visibles <- sum(!is.na(grille$chiffres_visibles))
+    showNotification(paste("Puzzle prêt !", nb_visibles, "indices sur", nb_total,
+                           "(solution unique garantie)"), type = "message", duration = 5)
     
   }, ignoreNULL = FALSE) # ignoreNULL = FALSE permet de lancer ça dès l'ouverture de la page
   
