@@ -139,6 +139,8 @@ ui <- fluidPage(
       width = 3,
       h4("Commandes"),
       sliderInput("entree_taille", "Taille de la grille", min = 4, max = 20, value = 5),
+      # Curseur pour choisir la proportion d'indices affichés (100% = tous les chiffres, mode facile)
+      sliderInput("entree_indices", "Indices affichés (%)", min = 10, max = 100, value = 60, step = 5),
       actionButton("bouton_nouveau", "Nouveau Jeu", icon = icon("sync"), class = "btn-primary w-100"),
       hr(),
       h4("Aides Visuelles"),
@@ -171,7 +173,9 @@ server <- function(input, output, session) {
     traits_joueur_h = NULL, 
     traits_joueur_v = NULL,
     partie_gagnee = FALSE,
-    message_texte = "Cliquez sur les traits gris pour les allumer."
+    message_texte = "Cliquez sur les traits gris pour les allumer.",
+    # Matrice des chiffres visibles par le joueur (NA = case masquée, le chiffre reste connu en interne)
+    chiffres_visibles = NULL
   )
   
   # ACTION : Quand on clique sur le bouton "Nouveau Jeu"
@@ -180,11 +184,25 @@ server <- function(input, output, session) {
     print(paste("=== NOUVELLE PARTIE DEMANDÉE (Taille", taille, ") ==="))
     
     # On génère la grille et on remet le plateau à zéro
-    etat_partie$donnees_grille <- generer_grille_slitherlink(taille, taille)
+    grille <- generer_grille_slitherlink(taille, taille)
+    etat_partie$donnees_grille <- grille
     etat_partie$traits_joueur_h <- matrix(0, taille + 1, taille)
     etat_partie$traits_joueur_v <- matrix(0, taille, taille + 1)
     etat_partie$partie_gagnee <- FALSE
     etat_partie$message_texte <- "Nouvelle partie lancée ! À vous de jouer."
+    
+    # Masquage aléatoire des chiffres selon le pourcentage d'indices choisi par le joueur
+    # On part de la grille complète et on efface (NA) les cases non sélectionnées
+    chiffres_masques <- grille$chiffres
+    proportion_visible <- input$entree_indices / 100
+    nb_cases_total <- taille * taille
+    nb_cases_a_cacher <- floor(nb_cases_total * (1 - proportion_visible))
+    if(nb_cases_a_cacher > 0) {
+      indices_a_cacher <- sample(nb_cases_total, nb_cases_a_cacher)
+      chiffres_masques[indices_a_cacher] <- NA # NA signifie "case sans indice affiché"
+    }
+    etat_partie$chiffres_visibles <- chiffres_masques
+    
   }, ignoreNULL = FALSE) # ignoreNULL = FALSE permet de lancer ça dès l'ouverture de la page
   
   # ACTION : Quand le joueur clique sur le dessin
@@ -317,9 +335,12 @@ server <- function(input, output, session) {
     points(grille_x, grille_y, pch=19, col="#bdc3c7", cex=1.2)
     
     # COUCHE 3 : Les Chiffres au centre des cases
+    # On utilise chiffres_visibles (qui peut contenir des NA) pour l'affichage,
+    # mais chiffres (solution complète) pour vérifier si le compte est bon.
     for(l in 1:nb_lignes) {
       for(c in 1:nb_colonnes) {
-        chiffre_attendu <- etat_partie$donnees_grille$chiffres[l,c]
+        chiffre_attendu <- etat_partie$donnees_grille$chiffres[l,c]   # Valeur réelle (toujours connue)
+        chiffre_visible <- etat_partie$chiffres_visibles[l,c]         # Valeur affichée (peut être NA)
         
         # Combien de traits le joueur a-t-il dessiné autour de cette case précise ?
         traits_autour_joueur <- etat_partie$traits_joueur_h[l,c] + 
@@ -327,12 +348,15 @@ server <- function(input, output, session) {
           etat_partie$traits_joueur_v[l,c] + 
           etat_partie$traits_joueur_v[l,c+1]
         
-        # Le chiffre change de couleur selon qu'on a le bon compte ou non
-        couleur_texte <- "#ecf0f1" # Blanc par défaut
-        if(traits_autour_joueur == chiffre_attendu) couleur_texte <- "#2ecc71" # Vert (OK)
-        if(traits_autour_joueur > chiffre_attendu) couleur_texte <- "#e74c3c"  # Rouge (Trop de traits !)
-        
-        text(c+0.5, (nb_lignes+1)-l+0.5, chiffre_attendu, col=couleur_texte, cex=2, font=2)
+        # On n'affiche le chiffre que si la case n'a pas été masquée (non-NA)
+        if(!is.na(chiffre_visible)) {
+          # Le chiffre change de couleur selon qu'on a le bon compte ou non
+          couleur_texte <- "#ecf0f1" # Blanc par défaut
+          if(traits_autour_joueur == chiffre_attendu) couleur_texte <- "#2ecc71" # Vert (OK)
+          if(traits_autour_joueur > chiffre_attendu) couleur_texte <- "#e74c3c"  # Rouge (Trop de traits !)
+          
+          text(c+0.5, (nb_lignes+1)-l+0.5, chiffre_visible, col=couleur_texte, cex=2, font=2)
+        }
       }
     }
     
