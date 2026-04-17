@@ -4,6 +4,7 @@
 Voici notre projet slitherlink, c'est une web app R shiny qui permet de jouer au jeu slitherlink avec plus ou moins de difficulté en fonction des exigences de l'utilisateur.
 Le gif ci-dessous montre l'aspect de la web-app et son utilisation en temps réel.
 
+![](app.gif)
 
 ## Installation
 
