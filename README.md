@@ -17,7 +17,7 @@ shiny::runApp("slitherlink_app_ines_chams/app.R")
 
 ---
 
-## La règle en une phrase
+## Les règles
 
 Chaque chiffre dit combien de ses côtés font partie de la boucle.
 Le but est de former **une seule boucle fermée** qui respecte tout les consignes de chaque cases.
@@ -61,11 +61,7 @@ Pour chaque case, on compte combien de ses 4 côtés appartiennent à la solutio
 
 ### Étape D — Retirer des indices tout en gardant une solution unique
 
-Pour avoir la garantie que le jeu dispose d'une solution unique peu importe les chiffres retirés, nous n'avons pas réellement trouvé de solution élégante. Ainsi nous avons décidé d'utiliser un solveur à chaque retrait de chiffre afin de vérifier si une ou plusieurs solution étaient trouvées. Dès l'instant où plusieurs solutions étaient trouvés
-Pour chaque chiffre à retirer, on demande au **solveur** de compter le nombre de solutions si ce chiffre disparaît :
-
-- **1 solution** → on peut retirer l'indice en toute sécurité 
-- **2 solutions ou plus** → on le remet, le puzzle deviendrait ambigu ❌
+Pour avoir la garantie que le jeu dispose d'une solution unique peu importe les chiffres retirés, nous n'avons pas réellement trouvé de solution élégante. Ainsi nous avons décidé d'utiliser un solveur qui calcule les solutions à chaque retrait de chiffre afin de vérifier si une ou plusieurs solution sont trouvées. Dès l'instant où plusieurs solutions existent on s'arrete.
 
 Le solveur utilise **propagation de contraintes** (deux règles logiques appliquées en boucle) puis **backtracking** si ça se bloque, et vérifie la connexité de la boucle par **BFS** en fin de compte. Tout ça pour garantir qu'il n'existe qu'une seule solution possible.
 
