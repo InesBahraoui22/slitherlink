@@ -31,7 +31,7 @@ Ce 3×3 ? La solution, c'est le rectangle extérieur. La suite, c'est toi.
 ## Les réglages
 ---
 
-## Comment ça marche sous le capot
+## Comment ça marche ?
 
 Le code est découpé en 4 grandes étapes, dans l'ordre :
 
@@ -70,7 +70,7 @@ Les · = indices retirés. Le solveur a vérifié chacun.
 
 ---
 
-## Cycle de vie d'une partie
+## Comment engager une partie ?
 
 ```
 NOUVEAU JEU
@@ -139,4 +139,4 @@ Total d'arêtes possibles : `2nm + n + m` = **60** pour une grille 5×5.
 
 ---
 
-> Fait en R avec Shiny. Thème néon inclus. Solveur par backtracking inclus. Frustration non incluse.
+> Fait en R avec Shiny
