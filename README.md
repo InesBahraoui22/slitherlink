@@ -130,22 +130,3 @@ slitherlink.R
       renderUI      ×2  (statut haut, statut bas)
       renderPlot    ×1  (dessin en 4 couches)
 ```
-
----
-
-## Résumé des variables du projet (exemple pour un jeu taille 5×5)
-
-| Matrice | Dimensions | Contenu |
-|---|---|---|
-| `solution_h` | 6 × 5 | Traits horizontaux de la solution (0/1) |
-| `solution_v` | 5 × 6 | Traits verticaux de la solution (0/1) |
-| `chiffres` | 5 × 5 | Indices complets (0 à 4) |
-| `chiffres_visibles` | 5 × 5 | Indices affichés (certains = NA) |
-| `traits_joueur_h` | 6 × 5 | Ce que le joueur a posé en horizontal |
-| `traits_joueur_v` | 5 × 6 | Ce que le joueur a posé en vertical |
-
-Total d'arêtes possibles : `2nm + n + m` = **60** pour une grille 5×5.
-
----
-
-> Fait en R avec Shiny
