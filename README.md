@@ -1,8 +1,8 @@
 # SLITHERLINK 
 
 ## Introduction
-Voici notre projet slitherlink, il 
-
+Voici notre projet slitherlink, c'est une web app R shiny qui permet de jouer au jeu slitherlink avec plus ou moins de difficulté en fonction des exigences de l'utilisateur.
+Le gif ci-dessous montre l'aspect de la web-app et son utilisation en temps réel.
 
 
 ## Installation
@@ -34,30 +34,32 @@ La solution dans cet exemple est le rectangle extérieur.
 
 ## Les réglages
 
-Il est possible de choisir la taille de la grille (de 4 à 20) et le pourcentage d'indice affichés (de 10% à 100%). De plus des aides tels que les indice en rouges sont possibles.
+Il est possible de choisir la taille de la grille (de 4 à 20) et le pourcentage d'indice affichés (de 10% à 100%). De plus des aides telles que les indice en rouges sont possibles.
 ---
 
-## Comment ça marche ?
+## Fonctionnement
 
 Le code est découpé en 4 grandes étapes, dans l'ordre :
 
 ### Étape A — Créer une forme
 
-On part du centre de la grille et on grignotage aléatoirement des cases voisines jusqu'à atteindre une taille cible. Ça donne une forme organique, jamais la même.
+Nous avons choisi de partir du centre de la grille et d'agrandir notre forme en ajoutant aléatoirement des cases en bordure de la forme jusqu'à atteindre une taille cible. 
 
-### Étape B — Calculer la solution
+### Étape B — Définir le contour de la forme
 
-On parcourt toutes les frontières entre l'intérieur et l'extérieur de la forme. Chaque frontière devient un trait de la solution. Résultat : deux matrices, `solution_h` et `solution_v`.
+On parcourt toutes les frontières entre l'intérieur et l'extérieur de la forme. Chaque frontière devient un trait de la solution. 
+On a décomposé les solutions en deux matrices, `solution_h` qui contient les trait horizontaux et `solution_v` les traits verticaux.
 
-### Étape C — Poser les chiffres
+### Étape C — Comptage des cotés
 
-Pour chaque case, on compte combien de ses 4 côtés appartiennent à la solution. C'est le chiffre affiché.
+Pour chaque case, on compte combien de ses 4 côtés appartiennent à la solution et nous enregistrons cela dans la variable chiffres_indices.
 
-### Étape D — Retirer des indices (la partie intelligente)
+### Étape D — Retirer des indices tout en gardant une solution unique
 
-C'est là que ça devient sérieux. Pour chaque chiffre à retirer, on demande au **solveur** de compter le nombre de solutions si ce chiffre disparaît :
+Pour avoir la garantie que le jeu dispose d'une solution unique peu importe les chiffres retirés, nous n'avons pas réellement trouvé de solution élégante. Ainsi nous avons décidé d'utiliser un solveur à chaque retrait de chiffre afin de vérifier si une ou plusieurs solution étaient trouvées. Dès l'instant où plusieurs solutions étaient trouvés
+Pour chaque chiffre à retirer, on demande au **solveur** de compter le nombre de solutions si ce chiffre disparaît :
 
-- **1 solution** → on peut retirer l'indice en toute sécurité ✅
+- **1 solution** → on peut retirer l'indice en toute sécurité 
 - **2 solutions ou plus** → on le remet, le puzzle deviendrait ambigu ❌
 
 Le solveur utilise **propagation de contraintes** (deux règles logiques appliquées en boucle) puis **backtracking** si ça se bloque, et vérifie la connexité de la boucle par **BFS** en fin de compte. Tout ça pour garantir qu'il n'existe qu'une seule solution possible.
