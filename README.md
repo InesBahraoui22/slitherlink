@@ -34,7 +34,8 @@ La solution dans cet exemple est le rectangle extérieur.
 ---
 
 ## Les réglages
----
+
+
 Il est possible de choisir la taille de la grille (de 4 à 20) et le pourcentage d'indice affichés (de 10% à 100%). De plus des aides telles que les indice en rouges sont possibles.
 ---
 
