@@ -5,7 +5,7 @@ Voici notre projet slitherlink, c'est une web app R shiny qui permet de jouer au
 Le gif ci-dessous montre l'aspect de la web-app et son utilisation en temps réel.
 
 <p align="center">
-  <img src="appslitherlink.gif" width="700">
+  <img src="appslitherlink.gif" width="900">
 </p>
 
 ## Installation
