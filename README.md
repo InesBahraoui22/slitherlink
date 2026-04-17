@@ -133,7 +133,7 @@ slitherlink.R
 
 ---
 
-## Les matrices en jeu (exemple 5×5)
+## Résumé des variables du projet (exemple pour un jeu taille 5×5)
 
 | Matrice | Dimensions | Contenu |
 |---|---|---|
