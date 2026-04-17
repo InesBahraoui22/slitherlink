@@ -1,10 +1,15 @@
 # SLITHERLINK 
 
+## Introduction
+Voici notre projet slitherlink, il 
+
+
+
 ## Installation
 
 ```r
 install.packages(c("shiny", "bslib"))
-shiny::runApp("slitherlink.R")
+shiny::runApp("slitherlink_app_ines_chams/app.R")
 ```
 
 ---
@@ -12,7 +17,7 @@ shiny::runApp("slitherlink.R")
 ## La règle en une phrase
 
 Chaque chiffre dit combien de ses côtés font partie de la boucle.
-Forme **une seule boucle fermée** qui respecte tout ça. C'est tout.
+Le but est de former **une seule boucle fermée** qui respecte tout les consignes de chaque cases.
 
 ```
 +   +   +   +
@@ -24,11 +29,12 @@ Forme **une seule boucle fermée** qui respecte tout ça. C'est tout.
 +   +   +   +
 ```
 
-Ce 3×3 ? La solution, c'est le rectangle extérieur. La suite, c'est toi.
-
+La solution dans cet exemple est le rectangle extérieur.
 ---
 
 ## Les réglages
+
+Il est possible de choisir la taille de la grille (de 4 à 20) et le pourcentage d'indice affichés (de 10% à 100%). De plus des aides tels que les indice en rouges sont possibles.
 ---
 
 ## Comment ça marche ?
